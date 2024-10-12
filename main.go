@@ -1,6 +1,7 @@
 package validatingextra
 
 import (
+	"net"
 	"net/mail"
 
 	"github.com/RussellLuo/validating/v3"
@@ -54,6 +55,27 @@ func EmailNonDisposable() *validating.MessageValidator {
 
 		checkResult := disposableDomainService.Check(v)
 		if checkResult.IsDisposable {
+			return validating.NewInvalidErrors(field, messageValidator.Message)
+		}
+
+		return nil
+	})
+
+	return &messageValidator
+}
+
+func IpAddress() *validating.MessageValidator {
+	messageValidator := validating.MessageValidator{
+		Message: "is not a valid IP address",
+	}
+
+	messageValidator.Validator = validating.Func(func(field *validating.Field) validating.Errors {
+		v, ok := field.Value.(string)
+		if !ok {
+			return validating.NewUnsupportedErrors("IpAddress", field, "")
+		}
+
+		if net.ParseIP(v) == nil {
 			return validating.NewInvalidErrors(field, messageValidator.Message)
 		}
 
