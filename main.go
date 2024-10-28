@@ -1,6 +1,7 @@
 package validatingextra
 
 import (
+	"fmt"
 	"net"
 	"net/mail"
 
@@ -20,6 +21,7 @@ func init() {
 	disposableDomainService = disposableDomainService2
 }
 
+// Email is a validator that checks if the field is a valid e-mail address.
 func Email() *validating.MessageValidator {
 	messageValidator := validating.MessageValidator{
 		Message: "is not a valid e-mail address",
@@ -42,6 +44,7 @@ func Email() *validating.MessageValidator {
 	return &messageValidator
 }
 
+// EmailNonDisposable is a validator that checks if the field is a valid e-mail address and is not a disposable e-mail address.
 func EmailNonDisposable() *validating.MessageValidator {
 	messageValidator := validating.MessageValidator{
 		Message: "is disposable e-mail address",
@@ -64,6 +67,7 @@ func EmailNonDisposable() *validating.MessageValidator {
 	return &messageValidator
 }
 
+// IpAddress is a validator that checks if the field is a valid IP address.
 func IpAddress() *validating.MessageValidator {
 	messageValidator := validating.MessageValidator{
 		Message: "is not a valid IP address",
@@ -83,4 +87,25 @@ func IpAddress() *validating.MessageValidator {
 	})
 
 	return &messageValidator
+}
+
+// PointerValue is a composite validator that checks if the field is a non-nil pointer and then validates the value it points to.
+func PointerValue[T any](validator validating.Validator) validating.Validator {
+	return validating.Func(func(field *validating.Field) validating.Errors {
+		ptr, isOk := field.Value.(*T)
+		if !isOk {
+			return validating.NewErrors(field.Name, validating.ErrUnsupported, fmt.Sprintf("expected a %T but got %T", new(T), field.Value))
+		}
+
+		if ptr == nil {
+			return validating.NewErrors(field.Name, validating.ErrUnsupported, "expected a non-nil pointer but got nil pointer")
+		}
+
+		field2 := validating.Field{
+			Name:  field.Name,
+			Value: *ptr,
+		}
+
+		return validator.Validate(&field2)
+	})
 }
